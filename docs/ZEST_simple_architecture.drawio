@@ -1,0 +1,139 @@
+<mxfile host="app.diagrams.net" agent="Claude Code" pages="1">
+  <diagram id="zest-simple" name="ZEST - Simple Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1450" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="ZEST - Emotion &amp; Speaker Voice Conversion (Simple View)" style="text;html=1;fontSize=20;fontStyle=1;align=center;fontColor=#1a1a1a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="900" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Transfer the EMOTION of a target clip onto SOURCE speech, keeping the source speaker's identity and words." style="text;html=1;fontSize=12;align=center;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="46" width="900" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value="SOURCE SPEECH&#10;(what to say + whose voice)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="100" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="tgt" value="TARGET SPEECH&#10;(emotion reference)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="100" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="hubert" value="HuBERT&#10;(Content)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="210" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ecapa" value="ECAPA-TDNN&#10;(Speaker)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="210" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="yaapt" value="YAAPT&#10;(Pitch)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="210" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="wav2vec" value="wav2vec2&#10;(Emotion)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="210" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="content" value="Content Units" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="xvector" value="x-vector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="280" y="310" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sace" value="SACE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="310" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ease" value="EASE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="410" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="emotion" value="Emotion Embedding" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="410" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="speaker" value="Speaker Embedding" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="280" y="510" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="crossattn" value="Cross Attention" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="640" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="f0pred" value="F0 Predictor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="740" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="predpitch" value="Predicted Pitch (F0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="840" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="concat" value="Content + Speaker + Emotion + F0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="950" width="280" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="hifigan" value="HiFi-GAN&#10;(vocoder)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="1060" width="160" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="output" value="Converted Speech" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="1170" width="160" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="src" target="hubert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="src" target="ecapa">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="src" target="yaapt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="tgt" target="wav2vec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="hubert" target="content">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="ecapa" target="xvector">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="xvector" target="ease">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="ease" target="speaker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="wav2vec" target="sace">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="sace" target="emotion">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="content" target="crossattn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="emotion" target="crossattn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="yaapt" target="predpitch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="crossattn" target="f0pred">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="f0pred" target="predpitch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="predpitch" target="concat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="concat" target="hifigan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;" edge="1" parent="1" source="hifigan" target="output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#999999;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.07;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="content" target="concat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#999999;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="speaker" target="concat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#999999;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.93;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emotion" target="concat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legbox" value="&lt;b&gt;What each block does&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;HuBERT&lt;/b&gt; - pulls out &lt;i&gt;Content Units&lt;/i&gt;: the words/phonemes, stripped of voice &amp;amp; emotion.&lt;br&gt;&lt;br&gt;&lt;b&gt;ECAPA-TDNN&lt;/b&gt; - produces an &lt;i&gt;x-vector&lt;/i&gt;: a fingerprint of the speaker's voice timbre.&lt;br&gt;&lt;br&gt;&lt;b&gt;EASE&lt;/b&gt; - cleans the x-vector into a &lt;i&gt;Speaker Embedding&lt;/i&gt; that is emotion-free (pure identity).&lt;br&gt;&lt;br&gt;&lt;b&gt;YAAPT&lt;/b&gt; - tracks the source &lt;i&gt;pitch (F0)&lt;/i&gt; contour as a reference.&lt;br&gt;&lt;br&gt;&lt;b&gt;wav2vec2 + SACE&lt;/b&gt; - read the target clip and output an &lt;i&gt;Emotion Embedding&lt;/i&gt; (e.g. happy / angry / sad), free of the target speaker's identity.&lt;br&gt;&lt;br&gt;&lt;b&gt;Cross Attention + F0 Predictor&lt;/b&gt; - blend content with the emotion to predict a NEW emotional pitch contour (&lt;i&gt;Predicted Pitch&lt;/i&gt;).&lt;br&gt;&lt;br&gt;&lt;b&gt;HiFi-GAN&lt;/b&gt; - a neural vocoder that turns the combined features back into an audio waveform.&lt;br&gt;&lt;br&gt;&lt;i&gt;Dashed arrows&lt;/i&gt; = features pooled into the final mix." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=12;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="100" width="380" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="exbox" value="&lt;b&gt;Worked Example&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Inputs&lt;/b&gt;&lt;br&gt;- SOURCE = Alice saying &amp;quot;I'll be there soon&amp;quot; in a flat, neutral tone.&lt;br&gt;- TARGET = a short clip of someone speaking &lt;b&gt;happily&lt;/b&gt; (any speaker).&lt;br&gt;&lt;br&gt;&lt;b&gt;Step by step&lt;/b&gt;&lt;br&gt;1. HuBERT -&amp;gt; Content Units = the words &amp;quot;I'll be there soon&amp;quot;.&lt;br&gt;2. ECAPA-TDNN -&amp;gt; x-vector -&amp;gt; EASE -&amp;gt; Speaker Embedding = &amp;quot;Alice's voice&amp;quot;.&lt;br&gt;3. YAAPT -&amp;gt; Alice's original (flat) pitch line.&lt;br&gt;4. wav2vec2 -&amp;gt; SACE -&amp;gt; Emotion Embedding = &amp;quot;happy&amp;quot;.&lt;br&gt;5. Cross Attention + F0 Predictor -&amp;gt; a new, lively rising-and-falling &lt;b&gt;happy&lt;/b&gt; pitch contour.&lt;br&gt;6. Concatenate: Alice's words + Alice's voice + happy emotion + happy pitch.&lt;br&gt;7. HiFi-GAN renders the waveform.&lt;br&gt;&lt;br&gt;&lt;b&gt;Output&lt;/b&gt; = Alice saying &amp;quot;I'll be there soon&amp;quot; - same words, same voice, now sounding &lt;b&gt;happy&lt;/b&gt;." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=12;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="660" width="380" height="420" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

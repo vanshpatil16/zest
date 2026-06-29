@@ -1,0 +1,392 @@
+                                                 ZERO SHOT AUDIO TO AUDIO EMOTION TRANSFER WITH SPEAKER
+                                                                                    DISENTANGLEMENT
+
+                                                                            Soumya Dutta and Sriram Ganapathy
+
+                                         Learning and Extraction of Acoustic Patterns (LEAP) lab, Indian Institute of Science, Bangalore.
+                                                                         E-mail - {soumyadutta,sriramg}@iisc.ac.in
+
+arXiv:2401.04511v1 [eess.AS] 9 Jan 2024                                   ABSTRACT                                and heterogeneous sentiments elicited in human speech. Hence, we
+                                                                                                                  argue that the most natural form of emotion conversion is to trans-
+                                         The problem of audio-to-audio (A2A) style transfer involves replac-      fer the emotion expressed in a target audio to the source audio, a.k.a
+                                         ing the style features of the source audio with those from the target    A2A emotion style transfer. This motivation is also echoed in a re-
+                                         audio while preserving the content related attributes of the source      cent work on A2A style transfer [12]. In spite of these efforts, audio-
+                                         audio. In this paper, we propose an efficient approach, termed as        to-audio (A2A) style transfer in zero shot setting (unseen speakers
+                                         Zero-shot Emotion Style Transfer (ZEST), that allows the trans-          and emotion classes) is challenging.
+                                         fer of emotional content present in the given source audio with the
+                                         one embedded in the target audio while retaining the speaker and              On a separate front, representation learning of speech has shown
+                                         speech content from the source. The proposed system builds upon          remarkable progress in the recent years. The wav2vec [13] models
+                                         decomposing speech into semantic tokens, speaker representations         have been improved with masked language modeling (MLM) objec-
+                                         and emotion embeddings. Using these factors, we propose a frame-         tives (for example, HuBERT [14]) in self-supervised learning (SSL)
+                                         work to reconstruct the pitch contour of the given speech signal and     settings. The derivation of speaker representations have mostly
+                                         train a decoder that reconstructs the speech signal. The model is        been pursued with a supervised model [15]. Further, reconstructing
+                                         trained using a self-supervision based reconstruction loss. During       speech from factored representations of speaker, content and pitch
+                                         conversion, the emotion embedding is alone derived from the target       contours [16] has shown that models like Tacotron [17], AudioLM
+                                         audio, while rest of the factors are derived from the source audio.      [18] and HiFi-GAN [19] allow good quality speech generation.
+                                         In our experiments, we show that, even without using parallel train-
+                                         ing data or labels from the source or target audio, we illustrate zero        In this paper, we propose a framework called, zero shot emotion
+                                         shot emotion transfer capabilities of the proposed ZEST model using      transfer - ZEST, which leverages the advances made in representa-
+                                         objective and subjective quality evaluations.                            tion learning and speech reconstruction. The proposed framework
+                                         Index Terms: Speech Emotion modeling, Style Transfer, Disentan-          decomposes the given audio into semantic tokens (using HuBERT
+                                         gled Representation Learning.                                            model [14]), speaker representations (x-vectors [15]), and emotion
+                                                                                                                  embeddings (derived from a pre-trained emotion classifier). Inspired
+                                                                    1. INTRODUCTION                               by speaker disentangling proposed for speech synthesis [20], we also
+                                                                                                                  perform a single step of speaker and emotion disentanglement in
+                                         Artificial emotional intelligence [1] encompasses methods that en-       the embeddings. Since pitch (F0) is also a component that embeds
+                                         able machines to understand and interact with human expressions          content, speaker and emotion, we investigate a cross-attention based
+                                         of emotions. The style transfer approach to manipulating emotion,        model for predicting the F0 contour of a given utterance. Using the
+                                         given a source and target data sample, is the task of converting emo-    three representations (speech, speaker and emotion) along with the
+                                         tion in the source sample to match the emotional style of the target     predicted F0 contours, the proposed ZEST framework utilizes the
+                                         sample while retaining rest of the attributes of the source. While the   HiFi-GAN [19] decoder model for reconstructing the speech. Dur-
+                                         task has shown promising results in image domain [2], the applica-       ing emotion conversion, the proposed ZEST approach does not use
+                                         tions in audio domain is more challenging [3, 4]. In this paper, we      text or parallel training and simply imports the emotion embedding
+                                         explore the task of emotion style transfer in speech data.               from the target audio for style transfer.
+
+                                              Voice conversion of speech primarily explored converting the             The experiments are performed on emotion speech dataset
+                                         speaker identity of a voice [5]. However, speech also contains infor-    (ESD) [21]. We also explore a zero shot setting, where an unseen
+                                         mation about the underlying emotional trait of the speaker in vary-      emotion from a different dataset is used as the reference audio. Fur-
+                                         ing levels [6]. The initial frameworks using Gaussian mixture model      ther, a setting where the source speech is derived from an unseen
+                                         (GMM) [7], hidden Markov model [8] and deep learning [9] based           speaker is also investigated. We perform several objective and sub-
+                                         conversion approaches have recently been advanced with generative        jective quality evaluations and compare with benchmark methods
+                                         adversarial networks (GAN) [10] and sequence-to-sequence auto en-        to highlight the style transfer capability of the proposed framework.
+                                         coding models [11].                                                      The key contributions from this work can be summarized as follows,
+
+                                              In many of the prior emotion conversion approaches, the emo-        · Proposing a novel framework for predicting the pitch contour of a
+                                         tion targets are treated as discrete labels. However, emotion is a         given audio file using the semantic tokens from HuBERT, speaker
+                                         fine-grained attribute which has varying levels of granularities [6].      embeddings and emotion embeddings.
+                                         Forcing the emotion attribute to a small number of discrete target la-
+                                         bels may not allow the models to capture the wide range of diverse       · Enabling speaker-emotion disentanglement using adversarial
+                                                                                                                    training.
+                                              This work was partly funded by grants provided by British Telecom.
+                                                                                                                  · Illustrating zero shot emotion transfer capabilities from unseen
+                                                                                                                    emotion categories, novel speakers and content.
+              HuBERT q1 q2     qT      Cross        1D-                                                            Content Embedding
+                EASE                 attention      CNN
+                 SACE                                                                         HuBERT      q1 q2    qT             CNN
+                                                                                                EASE                            BLSTM
+
+                                           ,                    F0                              SACE               Speaker Embedding
+                                                            Contour
+
+      Speech                                                                                                       F0 Contour                  HiFi
+                                                                                                                                               GAN
+                                                                                                                   F0             CNN
+                                                                               Speech                          Predictor        BLSTM
+
+                                                                                                                   Emotion Embedding                  Reconstructe
+                                                                                                                                                           Speech
+
+Fig. 1: Training of the F0 contour predictor. EASE - Emotion Ag-
+
+nostic Speaker Encoder. SACE - Speaker Adversarial Classifier of                                          (a) ZEST Training Paradigm
+
+Emotions. The blue blocks are kept frozen during training.                                    HuBERT      q1 q2    qT             CNN
+                                                                                                                                BLSTM
+
+
+                   2. RELATED PRIOR WORKS                                        Source         EASE
+                                                                                  Speech         SACE
+A2A EST Using World Vocoder: One of the earliest attempts for                                                      F0             CNN          HiFi
+EST involved using the world vocoder, as proposed by Gao et al.                    Targe                       Predictor        BLSTM          GAN
+[22]. This work used the statistics of F0 and spectral components                 Speech
+from the target speaker before reconstruction using the decoder. Our                                                                                  Converte
+work uses recent advances in speaker, emotion and content embed-
+ 
+
+ t
+  
+ d
+  d
+                                                                       Speech
+
+                                                                                                          (b) ZEST Conversion Paradigm
+
+dings for emotion style transfer. Further, we aim to transfer the              Fig. 2: (a) During training, ZEST is learned to reconstruct the speech
+emotion style from the reference speech to the source speech sig-              signal. (b) During emotion conversion, the components that are
+nal rather than just modifying the emotion category.                           derived from target speech are coded in orange color. The yellow
+Expressive text-to-speech synthesis: The work by Li et al. [20]                blocks are the learnable parts of the model using an auto-encoding
+explored using speaker disentanglement for generating emotional                objective, while the blue blocks indicate frozen components.
+speech from text. Similarly, Emovox proposed by Zhou et al. [6]
+used phonetic transcription for emotional voice conversion. How-               on 300 hours (543 speakers) of switchboard corpus [28], is used
+ever, our work explores EST without using any linguistic or phonetic           for extracting features from the raw speech signal [29]. The con-
+transcriptions of the source or target speech.                                 volutional feature extractors are kept frozen while the transformer
+
+Non-parallel and unseen emotion conversion: Recent work by                     layers along with two position wise feed forward layers are trained
+Chen et al. [12] explored using attention models for performing EST.           for the task of emotion recognition on the Emotional Speech Dataset
+However, this work forced the source and target speech to be from              (ESD) [21]. The model is trained with speaker adversarial loss (the
+the same speaker, limiting the utility of the EST applications.                emotion classifier equivalent of Eq. 1). The representations averaged
+                                                                               over the entire utterance are used as the emotion embedding.
+
+              3. METHOD                                                        3.4. Pitch Contour Predictor
+
+3.1. Content encoder                                                           The framework for the pitch (F0) predictor is shown in Figure 1.
+
+The content encoder used in the proposed framework is the HuBERT               The HuBERT tokens for the speech signal are converted to an se-
+SSL model [14]. The HuBERT model gives continuous valued vec-
+tor representations for each speech segment, which is subsequently             quence of vectors by means of an embedding layer. This sequence,
+converted into discrete tokens with a k-means clustering.
+                                                                               denoted    by  Q  =  {q1,  ..,  qT    T   ,  is  used  as  the  query  sequence  for
+
+                                                                                                                   }t=1
+
+                                                                               cross-attention. The frame-level SACE embeddings are added with
+
+                                                                               speaker embedding (EASE) to form the key-value pair for the cross
+
+                                                                               attention module [30]. This is followed by a 1D-CNN network to
+
+3.2. Emotion Agnostic Speaker Encoder (EASE)                                   predict the F0 contour. The target pitch contour is the one derived
+
+The speaker embeddings for each audio file are extracted using a               using the YAAPT algorithm [31]. We use the L1 loss between the
+
+enhanced channel attention-time delay neural network (ECAPA-                   predicted and target F0 contour.
+
+TDNN) [15] model. This model is pre-trained on 2794 hours                      3.5. Speech reconstruction
+
+and 7363 speakers from the VoxCeleb dataset [23], for the task of              The speech reconstruction framework is shown in Fig. 2(a). For re-
+                                                                               constructing the speech signal, the HuBERT tokens, SACE embed-
+speaker classification. The model involves an utterance level pooling          ding, EASE vector and the predicted F0 contour are used. The Hu-
+                                                                               BERT tokens are converted to a sequence of real-valued vectors with
+of the frame-level embeddings, called x-vectors. The x-vectors have            a learnable embedding layer. In order to add contextual information
+                                                                               during the speech reconstruction phase, the tokens and F 0pred are
+been shown to encode emotion information [24, 25]. In order to                 passed through two separate networks consisting of CNN layers and
+                                                                               bidirectional long-short term memory (BLSTM) layers. Finally, all
+suppress the emotion information, inspired by the disentanglement              the components are passed through a HiFi-GAN vocoder [19] to re-
+                                                                               construct the speech signal. More details of the HiFi GAN model
+approach proposed in Li et al. [20], we add two fully connected                are provided in Polyak et al. [16].
+
+layers to the x-vector model and further train the model with an
+
+emotion adversarial loss [26]. We refer to these vectors as the Emo-
+
+tion Agnostic Speaker Encoder (EASE) vectors. The loss function
+
+is given by
+
+              Ltot-spkr     =     spkr  -  aem dvo     emo           (1)
+
+                               Lce                  Lce
+
+3.3. Speaker Adversarial Classifier of Emotions (SACE)                         3.6. Emotion conversion
+
+A speaker adversarial classifier of emotions (SACE) classifier is de-          The ZEST framework for emotion conversion is shown in Fig-
+signed based on the wav2vec2.0 representations [13], similar to the            ure 2(b). The HuBERT tokens and the speaker vector are extracted
+one proposed by Pepino et al. [27]. The wav2vec model, pre-trained
+from the source speech while the emotion embeddings are derived           reconstruction model proposed in Polyak et al. [16] for benchmark-
+from the target speech. The emotion embedding sequence, being             ing. Here, the F0 contour is derived from the target audio, while the
+extracted from the reference speech, may differ in length from the        speech and speaker contents are derived from the source audio.
+source speech. However, as the query sequence in the cross-attention
+(Figure 1) is driven by the HuBERT tokens of the source signal, the       4.3. Evaluation settings
+F0 contour generated during conversion will match the length of the
+source signal. The HuBERT tokens, speaker vector, predicted F0            · Same-Speaker-Same-Text (SSST): The source and reference
+contour and the emotion embedding are then used to generate the             speech are from the same speaker and with the same textual con-
+converted speech through the pre-trained HiFi-GAN model. The                tent. Further, the source speech is always in neutral emotion, while
+conversion phase does not involve any model training steps.                 the reference speech can be from any other emotional category.
+                                                                            This test set has a total of 1200 samples (30 neutral samples from
+                 4. EXPERIMENTS AND RESULTS                                 the 10 speakers to be converted to 4 other emotion categories)
+
+4.1. Datasets and Pretraining                                             · Same-Speaker-Different-Text (SSDT): The source and reference
+                                                                            speech are from the same speaker but with different textual con-
+The HuBERT model is the pre-trained 12-layer base model de-                 tent. This test set is created by randomly choosing 10 neutral ut-
+scribed in Hsu et al. [14]. This model is pre-trained on 960 hours          terances (one per speaker) as the source speech signals, and the
+of Librispeech dataset. The speaker encoder is initialized with the         remaining 29 test set utterances for conversion into each of the
+ECAPA-TDNN model [15] pre-trained on the VoxCeleb dataset.                  four target emotions. This leads to a total of 1160 test utterances.
+Further, the emotion agnostic training of the EASE model is per-
+formed on the Emotional Speech Database (ESD) [21]. We also               · Different-Speaker-Same-Text (DSST): The source and reference
+train the F0 predictor as well as the HiFiGAN based reconstruction          speech are derived from different speakers using the same textual
+module on this dataset. We use the gender balanced English partition        content. Each source speech signal (in neutral emotion) has 36
+of this dataset in our experiments with 10 speakers. The training,          reference signals (the other 9 speakers having the same utterance
+validation and test splits are used as suggested in the dataset where,      in each of the 4 emotions). As each speaker has 30 test utterances,
+300 utterances from each of the 10 speakers, for the five labelled          this test set has a total of 10800 utterances.
+emotions - neutral, angry, happy, sad and surprise, are used for
+training. Thus, the training data consists of 15000 utterances, while     · Different-Speaker-Different-Text (DSDT): This is the most
+2500 (50 utterances per speaker per emotion) unseen utterances are          generic setting, where the source and reference speech do not
+used for validation and testing.                                            share speaker or textual content. In this case, 10 neutral utterances
+                                                                            are chosen as the source speech signal set (one per speaker). For
+     We further evaluate the ZEST method on unseen emotions                 each of these utterances, the remaining 29 utterances are selected
+and speakers. For unseen emotion targets, we use 2542 utterances            as the reference. This results in a test set of 10400 samples.
+from the CREMA-D dataset [32] belonging to two new emotion
+classes (fear and disgust). For unseen source speakers, we in-            · Unseen Target Emotions (UTE): The 2542 utterances from
+vestigate the use of the TIMIT database [33]. We choose 100                 CREMA-D are considered as target speech signals for each of the
+utterances distributed across 10 speakers selected at random from           10 randomly chosen neutral source utterances from ESD dataset,
+the TIMIT dataset for these experiments. Note that, the TIMIT               resulting in a total of 25420 evaluation utterances.
+and the CREMA-D datasets are only used in the conversion setting
+(Figure 2(b)). These evaluations reflect the zero-shot capability of      · Unseen Source Speakers (USS): In this setting, the 100 utter-
+the model.                                                                  ances from TIMIT are chosen to be the source speech signals and
+                                                                            8 randomly chosen emotional utterances from ESD dataset (2 per
+4.2. Implementation                                                         emotion class barring neutral) are used as the reference speech
+                                                                            signals. Each of the 8 utterances from ESD is from a different
+The HuBERT representations for the encoder are taken from 9-th              speaker. This results in a total of 800 evaluation utterances.
+layer of the pre-trained model and clustered with a k-means algo-
+rithm (K = 100) [16]. The EASE model is trained for a total of 10         4.3.1. Objective evaluation
+epochs with eam dvo set to 10 and batch size set to 32. The SACE setup
+is trained with a speaker adversarial loss ( = 1000) along with the       We use three objective metrics on the converted speech signals.
+pitch predictor (Section 3.4) with a batch size of 24 and a learning
+rate of 1e - 4, while the speech reconstruction model is trained with     · Emotion conversion accuracy: We evaluate the target emotion
+a batch size of 32 and a learning rate of 2e - 4. The pitch predictor is    class accuracy on the converted audio using the trained emotion
+trained for 50 epochs and the HiFi-GAN model is trained for 100K            classifier (Sec. 3.3)
+steps. The values of eam dvo and  are set based on the validation
+set performance of EASE and the pitch predictor respectively. Our         · Textual content preservation: The converted speech is passed
+code, converted audio samples and further ablations are available at        through an automatic speech recognition (ASR) system. This ASR
+this link1.                                                                 system used the HuBERT encoder as a pre-training module [14]
+                                                                            and was trained on the supervised 960h audio in the Librispeech
+     We use the VAWGAN model proposed by Zhou et al. [34] as the            [35] dataset using the CTC loss. The character error rate (CER) is
+baseline setup for bench-marking the proposed ZEST framework.               computed for the converted audio with respect to the ground truth
+As described in the paper, we supply the target emotion classes in-         transcription of the source speech signal.
+stead of the reference audio file for conversion. We also explore the
+                                                                          · Speaker preservation: We train a speaker classification model
+    1https://github.com/iiscleap/ZEST                                       using the source speech and the ECAPA-TDNN embeddings to
+                                                                            classify among the 10 training speakers. A two-layer feed-forward
+                                                                            model is employed as backend for this task. The speaker recog-
+                                                                            nition accuracy of the converted audio, with the source speaker as
+                                                                            target, is used as measure of the speaker preservation property.
+Table 1: Objective evaluation results (%). Here, Emo. Acc.- Emo-                               SSST SSDT DSST DSDT UTE USS
+tional Accuracy, CER - Character Error Rate, Spk. Acc. - Speaker
+accuracy. The different test settings are described in Sec. 4.3.                    5
+
+                                                                                    3.75
+
+       Method            SSST  SSDT  DSST  DSDT   UTE   USS              MOS Score  2.5
+
+CER    VAWGAN [34]        7.9   6.6   7.9   6.6     -     -                         1.25
+Emo.   Polyak [16]        7.0   5.7   7.0   5.7    6.1  14.6
+Acc.                                                                                0                        SMOS [Emo]  SMOS [Spk]
+Spk.   ZEST-no-adv.       7.9   5.6   7.6   5.7    6.2  14.9                                            MOS
+Acc.   ZEST-no-F0-pred.   8.6   6.3   8.5   6.3    7.1  14.9
+       ZEST               7.2   5.6   7.2   5.4   5.9   14.8             Fig. 3: Subjective evaluation on the different test settings. Abbrevi-
+                                                                         ations used: MOS- Mean Opinion Score, SMOS - Similarity Mean
+       VAWGAN [34]       41.4  44.5  41.4   44.5    -     -              Opinion Score. The definition of the different test settings is given
+       Polyak [16]       36.4  33.3  28.3   25.9    -   26.6
+                                                                         in Sec. 4.3. indicates that the difference in scores from the SSST
+       ZEST-no-adv.      56.1  42.4  46.8   38.6    -   36.4             test setting is statistically significant (p < 0.05)
+       ZEST-no-F0-pred.  55.8  39.9  45.3   36.6    -   28.4
+       ZEST              69.0  63.8  60.0  55.6     -   72.5             - i) Emotion transfer between the converted and the reference sig-
+                                                                         nal, ii) Quality of the converted speech and iii) Speaker similarity
+       VAWGAN [34]       62.4  76.0  62.4   76.0    -     -              between the converted and the source signal. The subjective evalu-
+       Polyak [16]       99.6   100  99.7   100   99.1    -              ation results (in terms of mean opinion score (MOS)) are reported
+                                                                         in Figure 3. As seen in these results, the emotion transfer and re-
+       ZEST-no-adv.      98.3   100  97.5   99.8  98.7    -              construction speech quality MOS values are the best for SSST con-
+       ZEST-no-F0-pred.  96.8  99.4  93.4   97.9  97.6    -              dition. This is expected as the transfer of emotion from a reference
+       ZEST              99.4  99.8  97.8   99.7  98.6    -              speech of the same speaker with same textual content is the easiest
+                                                                         test setting among all. However, the MOS results for the other chal-
+The results for these objective tests are shown in Table 1. The fol-     lenging conditions also compare well with the SSST setting (except
+lowing are the insights drawn from the objective evaluations.            the speaker MOS on the unseen source speaker (USS) condition).
+
+· The emotion transfer accuracy for ZEST is seen to be signficantly           We also measure a statistical significance (unpaired t-test) be-
+  improved over the baseline systems compared here. Even in chal-        tween the scores obtained for the SSST test setting with each of
+  lenging conditions, like different speakers and different text con-    the other 5 conditions. The emotion MOS for SSST is statistically
+  tent present in the target audio, and for unseen source speakers,      significantly higher than all the other conditions. However on the
+  the ZEST is seen to perform emotion transfer effectively.              speech quality, all the conditions, except UTE and DSDT, gener-
+                                                                         ate statistically similar results compared to SSST setting. For the
+· The CER results show that both the baseline system (Polyak et al.      speaker MOS scores, the unseen emotion targets and unseen speaker
+  [16] and the ZEST provide similar ASR performance for all the          sources generate statistically different results compared to SSST.
+  conditions. Even on the unseen target emotions (UTE), the ZEST         Part of the reason for this behavior may be attributed to the limited
+  is seen to preserve the CER. On the USS condition, both models         (10 speakers with same speech content) training employed for the
+  show a degradation in the CER, potentially due to the mismatch in      reconstruction model (HiFi-GAN). In future, we plan to train the re-
+  the training/test domain of HiFi-GAN model.                            construction model on a larger resource of neutral speech along with
+                                                                         the emotional speech to improve the generalization to novel speak-
+· The speaker accuracy of the VAWGAN is found to be inferior             ers. Further, leveraging larger emotional speech datasets for training
+  (SSST setting). The baseline model of Polyak et al. [16] allows        the emotion embedding extractor and the F0 predictor may improve
+  near perfect speaker classification on all settings, while the pro-    the quality of the emotion transfer to unseen emotions.
+  posed ZEST also matches this performance on all settings except
+  the DSST. However, the model based on Polyak et al. [16] is not                                            5. SUMMARY
+  seen to be effective in transfer of emotions.
+                                                                         We have presented an approach for zero shot emotion style trans-
+· We show two ablations of ZEST in Table 1, where either the emo-        fer (ZEST) for audio-to-audio emotion conversion. The proposed
+  tion adversarial loss in the EASE module or the pitch predictor        ZEST method leverages pre-trained representations of speech con-
+  module is absent. The adversarial training allows disentangled         tent, speaker embeddings and emotion embeddings. Further, a pitch
+  representations of speaker and emotion, which is shown to im-          predictor model is designed in a self-supervised setting in order to
+  prove the objective quality results. Further, the utility of EASE is   learn the mapping from the representations to the pitch contour.
+  seen from the improvement in the emotion accuracy across all the       A reconstruction module based on the HiFi-GAN allows the re-
+  6 test settings. The pitch prediction module also aids the system      composition of the factored representations to generate the speech
+  to achieve a better ASR performance.                                   signal. For emotion conversion, we only derive the emotion em-
+                                                                         beddings from the target speech and perform the reconstruction.
+4.4. Subjective tests                                                    Various objective quality evaluation experiments with different lev-
+                                                                         els of source/target mis-match, transfer to unseen emotions and
+We conduct listening tests in order to judge the effectiveness of our    from unseen source speakers elicit the zero shot emotion transfer
+method. We used Prolific2 tool to setup the subjective listening tests.  capability of the proposed model. The subjective listening tests also
+We recruited 20 participants to perform the subjective evaluation.       validate the benefits of the proposed setting.
+We choose 52 recordings, with 8 recordings from each of the 4 test
+settings (SSST, SSDT, DSST, DSDT) and 10 recordings each from
+UTE, and USS settings. The recordings were presented in a random
+order. The participants were also provided with training examples to
+illustrate the objective of the test.
+
+     All the participants in the survey were asked to give their opin-
+ion score on the audio files (range of 1-5) based on three criteria
+
+    2https://www.prolific.co
+                            6. REFERENCES                              [18] Zala´n Borsos et al., "Audiolm: a language modeling ap-
+                                                                             proach to audio generation," IEEE/ACM Transactions on Au-
+ [1] Dagmar Schuller and Bjo¨rn W Schuller, "The age of artificial           dio, Speech, and Language Processing, 2023.
+      emotional intelligence," Computer, vol. 51, no. 9, pp. 38­46,
+      2018.                                                            [19] Jungil Kong, Jaehyeon Kim, and Jaekyoung Bae, "Hifi-gan:
+                                                                             Generative adversarial networks for efficient and high fidelity
+ [2] Yongcheng Jing et al., "Neural style transfer: A review," IEEE          speech synthesis," NeurIPS, vol. 33, pp. 17022­17033, 2020.
+      transactions on visualization and computer graphics, vol. 26,
+      no. 11, pp. 3365­3385, 2019.                                     [20] Tao Li et al., "Cross-speaker emotion disentangling and trans-
+                                                                             fer for end-to-end speech synthesis," IEEE/ACM Transac-
+ [3] Kaizhi Qian et al., "Autovc: Zero-shot voice style transfer             tions on Audio, Speech, and Language Processing, vol. 30, pp.
+      with only autoencoder loss," in ICML. PMLR, 2019, pp. 5210­            1448­1460, 2022.
+      5219.
+                                                                       [21] Kun Zhou et al., "Seen and unseen emotional style transfer
+ [4] Shrutina Agarwal, Sriram Ganapathy, and Naoya Takahashi,                for voice conversion with a new emotional speech dataset," in
+      "Leveraging symmetrical convolutional transformer networks             ICASSP. IEEE, 2021, pp. 920­924.
+      for speech to singing voice style transfer," arXiv preprint
+      arXiv:2208.12410, 2022.                                          [22] Jian Gao et al., "Nonparallel emotional speech conversion,"
+                                                                             arXiv preprint arXiv:1811.01174, 2018.
+ [5] Berrak Sisman et al., "An overview of voice conversion and
+      its challenges: From statistical modeling to deep learning,"     [23] Arsha Nagrani et al., "Voxceleb: Large-scale speaker verifica-
+      IEEE/ACM Transactions on Audio, Speech, and Language                   tion in the wild," Computer Speech & Language, vol. 60, pp.
+      Processing, vol. 29, pp. 132­157, 2020.                                101027, 2020.
+
+ [6] Kun Zhou et al., "Emotion intensity and its control for emo-      [24] Raghavendra Pappagari et al., "x-vectors meet emotions: A
+      tional voice conversion," IEEE Transactions on Affective Com-          study on dependencies between emotion and speaker recogni-
+      puting, vol. 14, no. 1, pp. 31­48, 2022.                               tion," in ICASSP. IEEE, 2020, pp. 7169­7173.
+
+ [7] Ryo Aihara et al., "GMM-based emotional voice conversion          [25] Zein Shaheen et al., "Exploiting Emotion Information in
+      using spectrum and prosody features," American Journal of              Speaker Embeddings for Expressive Text-to-Speech," in IN-
+      Signal Processing, vol. 2, no. 5, pp. 134­138, 2012.                   TERSPEECH 2023, 2023, pp. 2038­2042.
+
+ [8] Zeynep Inanoglu and Steve Young, "Data-driven emotion con-        [26] Yaroslav Ganin et al., "Domain-adversarial training of neural
+      version in spoken english," Speech Communication, vol. 51,             networks," The journal of machine learning research, vol. 17,
+      no. 3, pp. 268­283, 2009.                                              no. 1, pp. 2096­2030, 2016.
+
+ [9] Huaiping Ming et al., "Deep Bidirectional LSTM Modeling           [27] Leonardo Pepino, Pablo Riera, and Luciana Ferrer, "Emo-
+      of Timbre and Prosody for Emotional Voice Conversion," in              tion recognition from speech using wav2vec 2.0 embeddings,"
+      INTERSPEECH 2016, 2016, pp. 2453­2457.                                 arXiv preprint arXiv:2104.03502, 2021.
+
+[10] Georgios Rizos et al., "StarGAN for emotional speech conver-      [28] John J Godfrey, Edward C Holliman, and Jane McDaniel,
+      sion: Validated by data augmentation of end-to-end emotion             "Switchboard: Telephone speech corpus for research and de-
+      recognition," in ICASSP. IEEE, 2020, pp. 3502­3506.                    velopment," in ICASSP. IEEE Computer Society, 1992, vol. 1,
+                                                                             pp. 517­520.
+[11] Ravi Shankar et al., "Multi-speaker emotion conversion via
+      latent variable regularization and a chained encoder-decoder-    [29] Soumya Dutta and Sriram Ganapathy, "HCAM­Hierarchical
+      predictor network," arXiv preprint arXiv:2007.12937, 2020.             Cross Attention Model for Multi-modal Emotion Recogni-
+                                                                             tion," arXiv preprint arXiv:2304.06910, 2023.
+[12] Yun Chen et al., "Attention-based Interactive Disentangling
+      Network for Instance-level Emotional Voice Conversion," in       [30] Ashish Vaswani et al., "Attention is all you need," NeurIPS,
+      INTERSPEECH 2023, 2023, pp. 2068­2072.                                 vol. 30, 2017.
+
+[13] Alexei Baevski et al., "wav2vec 2.0: A framework for self-        [31] Kavita Kasi and Stephen A Zahorian, "Yet another algorithm
+      supervised learning of speech representations," NeurIPS, vol.          for pitch tracking," in ICASSP. IEEE, 2002, vol. 1, pp. I­361.
+      33, pp. 12449­12460, 2020.
+                                                                       [32] Houwei Cao et al., "CREMA-D: Crowd-sourced emotional
+[14] Wei-Ning Hsu et al., "HuBERT: Self-supervised speech rep-               multimodal actors dataset," IEEE transactions on affective
+      resentation learning by masked prediction of hidden units,"            computing, vol. 5, no. 4, pp. 377­390, 2014.
+      IEEE/ACM Transactions on Audio, Speech, and Language
+      Processing, vol. 29, pp. 3451­3460, 2021.                        [33] John S Garofolo et al., "DARPA TIMIT acoustic-phonetic
+                                                                             continous speech corpus CD-ROM. NIST speech disc 1-1.1,"
+[15] Brecht Desplanques, Jenthe Thienpondt, and Kris Demuynck,               NASA STI/Recon technical report n, vol. 93, pp. 27403, 1993.
+      "Ecapa-tdnn: Emphasized channel attention, propagation and
+      aggregation in tdnn based speaker verification," arXiv preprint  [34] Kun Zhou, Berrak Sisman, and Haizhou Li, "Vaw-gan for
+      arXiv:2005.07143, 2020.                                                disentanglement and recomposition of emotional elements in
+                                                                             speech," in IEEE SLT. IEEE, 2021, pp. 415­422.
+[16] Adam Polyak et al., "Speech resynthesis from discrete dis-
+      entangled self-supervised representations," arXiv preprint       [35] Vassil Panayotov et al., "Librispeech: an asr corpus based
+      arXiv:2104.00355, 2021.                                                on public domain audio books," in ICASSP. IEEE, 2015, pp.
+                                                                             5206­5210.
+[17] Jonathan Shen et al., "Natural tts synthesis by conditioning
+      wavenet on mel spectrogram predictions," in ICASSP. IEEE,
+      2018, pp. 4779­4783.
+
