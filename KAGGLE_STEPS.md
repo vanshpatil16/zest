@@ -18,9 +18,10 @@ manifests (`train_esd.txt` etc.), patches every hardcoded path at runtime, and f
    - **Internet** → **On** (mandatory — HuBERT / wav2vec2 / SpeechBrain download from HuggingFace at runtime).
    - Quota: 30 GPU-hrs/week; a session stops after 9h or 20 min idle.
 
-## 2. Add the two inputs
-1. **The ZEST repo** — upload it as a Dataset (**Datasets → New Dataset**, upload your `ZEST` folder),
-   or push to GitHub and `!git clone` it in a cell. Note where it mounts, e.g. `/kaggle/input/zest/ZEST`.
+## 2. Add the input
+1. **The ZEST repo** — cloned automatically from GitHub by Cell 1 (`https://github.com/vanshpatil16/zest`).
+   The repo must be **public** (or use a token URL `https://USER:TOKEN@github.com/...` for a private repo).
+   Internet must be **On** (step 1) for the clone to work.
 2. **The ESD dataset** — Add Data → search "Emotional Speech Dataset (ESD)" (or upload your own copy).
    Note its English-wav root, e.g. `/kaggle/input/esd`.
 
@@ -29,10 +30,10 @@ manifests (`train_esd.txt` etc.), patches every hardcoded path at runtime, and f
 
 ## 3. Load the notebook and point it at your inputs
 1. **File → Import Notebook** → upload `kaggle_smoke.ipynb` (or paste the cells into a new notebook).
-2. In **Cell 1**, edit the two lines to match step 2:
+2. In **Cell 1**, the repo URL is already set; edit `ESD_WAV_DIR` to match step 2:
    ```python
-   REPO_SRC    = "/kaggle/input/zest/ZEST"   # the folder that contains code/, requirements.txt
-   ESD_WAV_DIR = "/kaggle/input/esd"         # root that contains the ESD English .wav files
+   REPO_URL    = "https://github.com/vanshpatil16/zest"   # cloned at runtime (must be public)
+   ESD_WAV_DIR = "/kaggle/input/esd"                       # root that contains the ESD English .wav files
    ```
 
 ## 4. Run it
