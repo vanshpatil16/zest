@@ -202,7 +202,7 @@ class PitchModel(nn.Module):
         super(PitchModel, self).__init__()
         self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-large-robust-ft-swbd-300h")
         self.wav2vec = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-large-robust-ft-swbd-300h", output_hidden_states=True)
-        self.encoder = WAV2VECModel(self.wav2vec, 5, hparams["emotion_embedding_dim"])
+        self.encoder = WAV2VECModel(self.wav2vec, hparams["output_classes"], hparams["emotion_embedding_dim"])
         self.embedding = nn.Embedding(101, 128, padding_idx=100)        
         self.fusion = CrossAttentionModel(128, 128)
         self.linear_layer = nn.Linear(128, 1)
