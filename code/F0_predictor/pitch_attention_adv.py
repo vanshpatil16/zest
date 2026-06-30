@@ -372,7 +372,7 @@ def train():
                 labels = list(labels)
                 gt_val.extend(labels)
         if val_loss < final_val_loss:
-            torch.save(model, 'f0_predictor.pth')
+            torch.save(model.state_dict(), 'f0_predictor.pth')
             final_val_loss = val_loss
         train_loss = tot_loss/tot_train_samples
         train_f1 = f1_score(gt_tr, pred_tr, average='weighted')

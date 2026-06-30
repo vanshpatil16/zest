@@ -171,7 +171,8 @@ def train():
     train_loader = create_dataset("train", 1)
     val_loader = create_dataset("val", 1)
     test_loader = create_dataset("test", 1)
-    model = torch.load('f0_predictor.pth', map_location=device)
+    model = PitchModel(hparams)
+    model.load_state_dict(torch.load('f0_predictor.pth', map_location=device))
     model.to(device)
     model.eval()
 
