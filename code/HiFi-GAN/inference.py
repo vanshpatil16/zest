@@ -142,7 +142,7 @@ def init_worker(queue, arguments):
         spkrs = random.sample(range(len(dataset.id_to_spkr)), k=min(5, len(dataset.id_to_spkr)))
 
     if a.f0_stats and h.get('f0', None) is not None:
-        f0_stats = torch.load(a.f0_stats)
+        f0_stats = torch.load(a.f0_stats, weights_only=False)
 
     generator.eval()
     generator.remove_weight_norm()
