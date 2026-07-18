@@ -2,7 +2,7 @@ import os
 import torch
 import torchaudio
 from einops.layers.torch import Rearrange
-from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+from transformers import Wav2Vec2FeatureExtractor, WavLMModel
 import logging
 import numpy as np
 import json
@@ -65,6 +65,7 @@ class WAV2VECModel(nn.Module):
         self.wav2vec = wav2vec
         
         embedding_dim = wav2vec.config.to_dict()['hidden_size']
+        self.layer_weights = nn.Parameter(torch.zeros(wav2vec.config.num_hidden_layers + 1))
         self.out = nn.Linear(hidden_dim_emo, output_dim)
         self.out_spkr = nn.Linear(hidden_dim_emo, 10)
         self.conv1 = nn.Conv1d(in_channels=embedding_dim, out_channels=hidden_dim_emo, kernel_size=5, padding=2)
@@ -76,8 +77,9 @@ class WAV2VECModel(nn.Module):
         
     def forward(self, aud, alpha):
         aud = aud.squeeze(0)
-        hidden_all = list(self.wav2vec(aud).hidden_states)
-        embedded = sum(hidden_all)
+        hidden_all = torch.stack(self.wav2vec(aud).hidden_states, dim=0)
+        norm_weights = torch.softmax(self.layer_weights, dim=0)
+        embedded = (norm_weights.view(-1, 1, 1, 1) * hidden_all).sum(dim=0)
         embedded = embedded.permute(0, 2, 1)
 
         emo_embedded = self.relu(self.conv1(embedded))
@@ -144,8 +146,8 @@ class CrossAttentionModel(nn.Module):
 class PitchModel(nn.Module):
     def __init__(self, hparams):
         super(PitchModel, self).__init__()
-        self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-large-robust-ft-swbd-300h")
-        self.wav2vec = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-large-robust-ft-swbd-300h", output_hidden_states=True)
+        self.processor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/wavlm-large")
+        self.wav2vec = WavLMModel.from_pretrained("microsoft/wavlm-large", output_hidden_states=True)
         self.encoder = WAV2VECModel(self.wav2vec, hparams["output_classes"], hparams["emotion_embedding_dim"])
         self.embedding = nn.Embedding(101, 128, padding_idx=100)        
         self.fusion = CrossAttentionModel(128, 128)

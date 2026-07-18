@@ -28,7 +28,7 @@ makes "language deviation" a real, not theoretical, problem.
 
 ## Work items (ordered by ROI ÷ risk)
 
-### T1 — WavLM into SACE (+ learnable layer weighting)  ·  Status: TODO
+### T1 — WavLM into SACE (+ learnable layer weighting)  ·  Status: CODE COMPLETE (branch `feat/wavlm-sace`; pending Kaggle retrain). Scope note: applied to all 4 `PitchModel` files, not 2.
 - **What:** Replace `Wav2Vec2ForCTC(...wav2vec2-large-robust...)` with
   `WavLMModel.from_pretrained("microsoft/wavlm-large")` in
   `code/F0_predictor/pitch_attention_adv.py:150-151` and
