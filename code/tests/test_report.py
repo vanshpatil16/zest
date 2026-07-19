@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 from tests.conftest import make_synth_manifest
 from eval.report import (speaker_metrics, emotion_metrics, cer_metrics,
-                         compute_system_report)
+                         compute_system_report, compare_reports, bootstrap_delta_ci,
+                         render_markdown)
+from eval.metrics import cer_aggregate
 
 
 M = make_synth_manifest(seed=1)
@@ -57,3 +59,35 @@ def test_compute_system_report_structure():
     assert set(rep["emotion"].keys()) == {"pooled", "en", "zh"}
     tr = rep["speaker"]["transfer_en_to_zh"]
     assert "act_cllr_en_cal" in tr and "degradation" in tr
+
+
+def test_compare_reports_deltas():
+    base = compute_system_report(make_synth_manifest("base", seed=3, tar_mu=0.4))
+    cand = compute_system_report(make_synth_manifest("cand", seed=3, tar_mu=0.7))
+    d = compare_reports(base, cand)
+    # candidate separates speakers better -> minCllr goes DOWN
+    assert d["speaker"]["pooled"]["min_cllr"] < 0
+    assert d["speaker"]["pooled"]["n_trials"] == 0
+
+
+def test_bootstrap_delta_ci_paired_and_signed():
+    base = make_synth_manifest("base", seed=4)["cer_records"]
+    cand = [dict(r, hyp=r["ref"]) for r in base]     # candidate: perfect ASR
+    fn = lambda rs: cer_aggregate([(r["ref"], r["hyp"]) for r in rs])
+    lo, hi = bootstrap_delta_ci(fn, base, cand, key_fn=lambda r: r["conv_file"],
+                                n_boot=50, seed=5)
+    assert hi <= 0.0                                  # CER strictly improves
+    with pytest.raises(ValueError):
+        bootstrap_delta_ci(fn, base, [dict(r, conv_file="other.wav")
+                                      for r in cand],
+                           key_fn=lambda r: r["conv_file"], n_boot=5)
+
+
+def test_render_markdown_single_and_ab():
+    cand = compute_system_report(M)
+    md = render_markdown(cand)
+    assert "# ZEST evaluation report" in md
+    assert "transfer" in md.lower()
+    base = compute_system_report(make_synth_manifest("base", seed=6))
+    md2 = render_markdown(cand, base, compare_reports(base, cand))
+    assert "A/B" in md2 and "base" in md2

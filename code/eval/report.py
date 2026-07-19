@@ -135,3 +135,101 @@ def compute_system_report(manifest):
                         "en": _try(emotion_metrics, emo, "en", "en"),
                         "zh": _try(emotion_metrics, emo, "zh", "zh")},
             "cer": cer_metrics(cers)}
+
+
+def compare_reports(base, cand):
+    """Recursive numeric diff: candidate minus baseline. Non-numeric -> None."""
+    def walk(b, c):
+        if isinstance(b, dict) and isinstance(c, dict):
+            return {k: walk(b.get(k), c.get(k)) for k in c if k in b}
+        if (isinstance(b, (int, float)) and not isinstance(b, bool)
+                and isinstance(c, (int, float)) and not isinstance(c, bool)):
+            return round(c - b, 6)
+        return None
+    return walk(base, cand)
+
+
+def bootstrap_delta_ci(metric_fn, base_items, cand_items, key_fn,
+                       n_boot=200, seed=0, alpha=0.05):
+    """Paired percentile-bootstrap CI for metric_fn(cand) - metric_fn(base),
+    resampling shared conv_file (key_fn) keys jointly."""
+    b_by, c_by = {}, {}
+    for it in base_items:
+        b_by.setdefault(key_fn(it), []).append(it)
+    for it in cand_items:
+        c_by.setdefault(key_fn(it), []).append(it)
+    keys = sorted(set(b_by) & set(c_by))
+    if not keys:
+        raise ValueError("no shared keys between baseline and candidate")
+    rng = np.random.default_rng(seed)
+    deltas = []
+    for _ in range(n_boot):
+        ks = [keys[i] for i in rng.integers(0, len(keys), len(keys))]
+        bs = [x for k in ks for x in b_by[k]]
+        cs = [x for k in ks for x in c_by[k]]
+        deltas.append(metric_fn(cs) - metric_fn(bs))
+    return (float(np.percentile(deltas, 100 * alpha / 2)),
+            float(np.percentile(deltas, 100 * (1 - alpha / 2))))
+
+
+def _fmt(x):
+    if x is None:
+        return "—"
+    if isinstance(x, float):
+        return f"{x:.4f}"
+    return str(x)
+
+
+_SPK_COLS = ["n_trials", "raw_eer", "snorm_eer", "min_cllr", "act_cllr",
+             "min_dcf"]
+_EMO_COLS = ["n", "accuracy", "ece_raw", "ece_calibrated", "temperature",
+             "det_eer", "det_min_cllr", "det_act_cllr"]
+
+
+def _table(title, cols, rows):
+    lines = [f"## {title}", "", "| panel | " + " | ".join(cols) + " |",
+             "|" + "---|" * (len(cols) + 1)]
+    for name, data in rows:
+        cells = [_fmt(data.get(c)) if data else "—" for c in cols]
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    lines.append("")
+    return lines
+
+
+def render_markdown(cand, base=None, delta=None):
+    L = [f"# ZEST evaluation report — {cand['system']}", ""]
+    panels = [(k, cand["speaker"][k]) for k in ("pooled", "en", "zh")]
+    L += _table("Speaker preservation (calibrated verification)",
+                _SPK_COLS, panels)
+    tr = cand["speaker"]["transfer_en_to_zh"]
+    L += ["### Cross-lingual transfer (EN-fit calibration applied to ZH)", "",
+          f"- actCllr with EN calibration: {_fmt(tr['act_cllr_en_cal'])}",
+          f"- actCllr with ZH calibration: {_fmt(tr['act_cllr_zh_cal'])}",
+          f"- degradation (EN-cal − ZH-cal): {_fmt(tr['degradation'])}", ""]
+    L += _table("Emotion transfer", _EMO_COLS,
+                [(k, cand["emotion"][k]) for k in ("pooled", "en", "zh")])
+    L += ["## Textual preservation (CER, per language — never pooled)", ""]
+    for lang in ("en", "zh"):
+        c = cand["cer"][lang]
+        L.append(f"- {lang}: CER {_fmt(c['cer'])} (n={c['n']})")
+    L.append("")
+    if base is not None and delta is not None:
+        L += [f"## A/B vs baseline — {base['system']} → {cand['system']}", "",
+              "| metric | baseline | candidate | Δ (cand−base) |",
+              "|---|---|---|---|"]
+        for sec, panel, key in (("speaker", "pooled", "min_cllr"),
+                                ("speaker", "pooled", "act_cllr"),
+                                ("speaker", "pooled", "snorm_eer"),
+                                ("emotion", "pooled", "accuracy"),
+                                ("emotion", "pooled", "det_act_cllr")):
+            b = (base[sec][panel] or {}).get(key)
+            c = (cand[sec][panel] or {}).get(key)
+            d = ((delta.get(sec) or {}).get(panel) or {}).get(key)
+            L.append(f"| {sec}.{panel}.{key} | {_fmt(b)} | {_fmt(c)} | {_fmt(d)} |")
+        for lang in ("en", "zh"):
+            b = base["cer"][lang]["cer"]
+            c = cand["cer"][lang]["cer"]
+            d = ((delta.get("cer") or {}).get(lang) or {}).get("cer")
+            L.append(f"| cer.{lang} | {_fmt(b)} | {_fmt(c)} | {_fmt(d)} |")
+        L.append("")
+    return "\n".join(L)
