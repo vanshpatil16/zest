@@ -4,8 +4,6 @@ from eval.calibration import (adaptive_snorm, snorm_scores, fit_platt,
                               apply_platt, fit_temperature, apply_temperature)
 from eval.metrics import ece
 
-RNG = np.random.default_rng(0)
-
 
 def test_snorm_standardizes_against_cohort():
     cohort = [0.0, 0.2, 0.4, 0.6, 0.8]  # mean 0.4
@@ -30,8 +28,9 @@ def test_snorm_rejects_degenerate_cohort():
 
 
 def test_snorm_shrinks_cross_condition_offset():
-    base_t = RNG.normal(0.5, 0.05, 200)
-    base_c = [list(RNG.normal(0.1, 0.05, 30)) for _ in range(200)]
+    rng = np.random.default_rng(10)
+    base_t = rng.normal(0.5, 0.05, 200)
+    base_c = [list(rng.normal(0.1, 0.05, 30)) for _ in range(200)]
     # condition B: everything shifted +0.3 (different-language shift)
     shift_t = base_t + 0.3
     shift_c = [[x + 0.3 for x in c] for c in base_c]
@@ -42,9 +41,10 @@ def test_snorm_shrinks_cross_condition_offset():
 
 
 def test_platt_recovers_known_mapping():
-    s = RNG.normal(0.0, 2.0, 20000)
+    rng = np.random.default_rng(11)
+    s = rng.normal(0.0, 2.0, 20000)
     p = 1.0 / (1.0 + np.exp(-(2.0 * s - 1.0)))
-    y = (RNG.random(20000) < p).astype(int)
+    y = (rng.random(20000) < p).astype(int)
     cal = fit_platt(s, y)
     assert abs(cal["a"] - 2.0) < 0.15
     assert abs(cal["b"] - (-1.0)) < 0.15
@@ -62,9 +62,10 @@ def test_platt_requires_both_classes():
 
 
 def test_temperature_recovers_overconfidence_and_lowers_ece():
-    logits = RNG.normal(0.0, 2.0, (5000, 5))
+    rng = np.random.default_rng(12)
+    logits = rng.normal(0.0, 2.0, (5000, 5))
     true_p = np.exp(logits) / np.exp(logits).sum(1, keepdims=True)
-    y = np.array([RNG.choice(5, p=row) for row in true_p])
+    y = np.array([rng.choice(5, p=row) for row in true_p])
     over = np.exp(3.0 * logits)                     # overconfident by T=3
     over = over / over.sum(1, keepdims=True)
     T = fit_temperature(over, y)

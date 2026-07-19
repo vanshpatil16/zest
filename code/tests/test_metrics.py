@@ -41,8 +41,9 @@ def test_min_cllr_leq_act_cllr():
 
 
 def test_min_cllr_degrades_with_overlap():
-    close_tar = RNG.normal(0.2, 1.0, 2000)
-    close_non = RNG.normal(-0.2, 1.0, 2000)
+    rng = np.random.default_rng(13)
+    close_tar = rng.normal(0.2, 1.0, 2000)
+    close_non = rng.normal(-0.2, 1.0, 2000)
     assert min_cllr(close_tar, close_non) > min_cllr(TAR, NON)
 
 
@@ -84,7 +85,8 @@ def test_cer_handles_chinese_chars():
 
 
 def test_bootstrap_ci_reproducible_and_covers_mean():
-    items = list(RNG.normal(5.0, 1.0, 200))
+    rng = np.random.default_rng(14)
+    items = list(rng.normal(5.0, 1.0, 200))
     stat = lambda xs: float(np.mean(xs))
     lo1, hi1 = bootstrap_ci(stat, items, n_boot=200, seed=7)
     lo2, hi2 = bootstrap_ci(stat, items, n_boot=200, seed=7)
