@@ -9,7 +9,6 @@ import os
 import subprocess
 import sys
 
-import numpy as np
 import torch
 import torchaudio
 
@@ -101,6 +100,8 @@ def main(argv=None):
         _die(f"no converted wavs in {args.converted_dir}")
     if args.transcripts_tsv is None and not args.skip_cer:
         _die("provide --transcripts-tsv or pass --skip-cer explicitly")
+    if args.transcripts_tsv is not None and args.skip_cer:
+        _die("pass only one of --transcripts-tsv / --skip-cer, not both")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     try:
@@ -149,6 +150,9 @@ def main(argv=None):
             _die(f"source {src_base} not in val or test split — "
                  f"cannot assign dev/eval fold")
         lang = language_from_speaker(info["source_speaker"])
+        if info["source_speaker"] not in enroll:
+            _die(f"no enrollment for source speaker {info['source_speaker']} "
+                 f"(missing from --esd-train-dir)")
         wav = _load_wav(path, device)
 
         with torch.no_grad():
