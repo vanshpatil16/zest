@@ -10,7 +10,9 @@ _Companion file: `task.md` (the forward-looking plan). This file is the running 
 | M1 — Smoke-test reproduction (end-to-end pipeline on tiny ESD subset) | ✅ Done (fix pushed) |
 | M2 — Architecture documentation (`docs/ZEST_architecture.drawio`) | ✅ Done |
 | M3 — Optimization research (WavLM / calibration / language deviation / SpeechBrain) | ✅ Done |
-| T1–T5 — Architecture optimizations (see `task.md`) | ⬜ Not started |
+| T1 — WavLM → SACE swap (code) | ✅ Code complete — pending retrain/validation |
+| T2 — Calibrated eval harness (code) | ✅ Code complete — pending Kaggle scoring |
+| T3–T5 — Remaining optimizations (see `task.md`) | ⬜ Not started |
 
 ---
 
@@ -81,6 +83,43 @@ low-risk, high-ROI WavLM→SACE swap (T1).
 
 ---
 
+## T1 — WavLM → SACE swap  (✅ code complete 2026-07-18, pending retrain)
+
+Replaced the SACE self-supervised backbone `facebook/wav2vec2-large-robust-ft-swbd-300h`
+with `microsoft/wavlm-large` and made the layer aggregation learnable. Applied identically
+to **all four** files that define `PitchModel`/`WAV2VECModel` and load the shared
+`f0_predictor.pth` — `pitch_attention_adv.py` (train), `get_wav2vec_feats.py`,
+`pitch_inference.py`, `pitch_convert.py`. (Scope correction: the plan named 2 files; the
+backbone is duplicated in 4, so all had to change together or the checkpoint would fail to load.)
+
+| Change | Reason | Effect |
+|---|---|---|
+| Backbone `wav2vec2-large-robust` → `WavLMModel("microsoft/wavlm-large")` | WavLM is SOTA on SUPERB full-stack (beats HuBERT-Large on 14 subtasks, +2.4) and leads IEMOCAP emotion; its denoising + speaker-aware pretraining yields richer emotion features and cleaner speaker separability — exactly what SACE's emotion embedding + adversarial speaker-removal need. | **Verified:** `hidden_size` is 1024 for both, so every downstream conv/attention shape is unchanged; all four files compile. Invalidates `f0_predictor.pth` (new backbone weights + new param) → **retrain required**. **Expected (unmeasured):** stronger emotion features → better F0 prediction / emotion transfer; to confirm after retrain. |
+| `Wav2Vec2Processor` → `Wav2Vec2FeatureExtractor` | WavLM base repos ship no tokenizer, so `Wav2Vec2Processor.from_pretrained("microsoft/wavlm-large")` would error. The processor is used only to normalise audio → `input_values`, which the feature extractor provides. | **Verified:** correct loading; identical 16 kHz zero-mean/unit-variance preprocessing — no change to model inputs. |
+| `sum(hidden_all)` → learnable softmax-weighted sum (`self.layer_weights`) | Content/speaker/emotion live at different WavLM depths; an equal sum over all 25 hidden states dilutes the emotion-bearing layers. A learnable weighted sum (SUPERB standard) lets training select the most emotion-informative layers. | **Verified:** adds 25 trainable params; output magnitude is now ~1× a single layer (softmax sums to 1) instead of ~25×, and the scale shift is absorbed by the retrain (conv1/conv3 adapt) — no downside given a retrain is already required. **Expected:** sharper emotion representation; measured after retrain. |
+
+**Local verification done:** `python -m py_compile` on all four files → OK; consistency grep
+confirms no stale `Wav2Vec2ForCTC` / `Wav2Vec2Processor` / `wav2vec2-large-robust` /
+`sum(hidden_all)` remain, and `WavLMModel` + `layer_weights` are present in all four.
+Functional/quality effects are **not yet measured** — that needs a Kaggle retrain of
+`f0_predictor.pth` (no GPU/data locally). Work is on branch `feat/wavlm-sace` so `main`'s
+working baseline stays intact until WavLM is validated.
+
+---
+
+## T2 — Calibrated evaluation harness  (✅ code complete 2026-07-18, pending Kaggle runs)
+
+The repository had **no converted-audio evaluation** — the paper's calibrated metrics (EER, minCllr, as-norm) were unimplemented. Built a **two-stage harness** in `code/eval/` (spec + plan in `docs/superpowers/`):
+- **Stage A:** `score_converted.py` — loads a trained emotion probe (5-class classifier on mean-pooled HuBERT-base features), scores converted wavs against held-out ESD train/val/test speakers, computes frame-level ASR via BLIP-2 (CER), and outputs calibration-ready score manifests (JSON).
+- **Probe trainer:** `train_emotion_probe.py` — trains the independent 5-class ESD emotion probe on frozen HuBERT-base (deliberately not WavLM, to isolate evaluator from SACE), outputs `.pth`.
+- **Stage B:** `calibrate_report.py` — loads two manifests (baseline + candidate), applies adaptive score normalization (as-norm), fits logistic calibration, computes EER / minCllr / actCllr / minDCF, and produces markdown + JSON reports with 95% bootstrap confidence intervals for paired comparisons.
+
+**Pure core (esd/manifest/metrics/calibration/report + CLI):** fully unit-tested locally. 49 tests passing; per-module coverage: esd 97%, manifest 91%, metrics 96%, calibration 100%, report 96%, calibrate_report 96% (all ≥80%).
+
+**Stage A + probe trainer:** py_compile-verified (syntax clean), pending Kaggle execution per `code/eval/KAGGLE_EVAL.md` (GPU + Internet required for HuBERT extraction + training).
+
+---
+
 ## Next up
-1. **T1** — WavLM into SACE + learnable layer weighting (see `task.md`).
-2. Verify M1 conversion output on Kaggle (`pred_DSDT_f0 > 0`).
+1. Kaggle run — T1 retrain, then T2 probe training + scoring of baseline & WavLM systems, then Stage B A/B report.
+2. T3.

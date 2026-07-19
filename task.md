@@ -28,7 +28,7 @@ makes "language deviation" a real, not theoretical, problem.
 
 ## Work items (ordered by ROI ÷ risk)
 
-### T1 — WavLM into SACE (+ learnable layer weighting)  ·  Status: TODO
+### T1 — WavLM into SACE (+ learnable layer weighting)  ·  Status: CODE COMPLETE (branch `feat/wavlm-sace`; pending Kaggle retrain). Scope note: applied to all 4 `PitchModel` files, not 2.
 - **What:** Replace `Wav2Vec2ForCTC(...wav2vec2-large-robust...)` with
   `WavLMModel.from_pretrained("microsoft/wavlm-large")` in
   `code/F0_predictor/pitch_attention_adv.py:150-151` and
@@ -40,7 +40,7 @@ makes "language deviation" a real, not theoretical, problem.
   and it leads on IEMOCAP emotion. API-compatible (16 kHz, `output_hidden_states`) → low risk.
 - **Effort/Risk:** Low / Low. Lighter alt for T4 smoke test: `microsoft/wavlm-base-plus`.
 
-### T2 — Calibrated evaluation (as-norm + EER/Cllr)  ·  Status: TODO
+### T2 — Calibrated evaluation (as-norm + EER/Cllr)  ·  Status: CODE COMPLETE (pending Kaggle scoring runs). Spec: docs/superpowers/specs/2026-07-18-t2-calibrated-evaluation-design.md
 - **What:** Add score calibration to the two eval metrics — speaker-similarity
   (cosine/PLDA) and emotion-transfer accuracy. Use **adaptive score normalization
   (as-norm)** + logistic (Platt) calibration; report **EER + minCllr/actCllr + minDCF**
