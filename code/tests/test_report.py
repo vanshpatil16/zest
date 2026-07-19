@@ -91,3 +91,28 @@ def test_render_markdown_single_and_ab():
     base = compute_system_report(make_synth_manifest("base", seed=6))
     md2 = render_markdown(cand, base, compare_reports(base, cand))
     assert "A/B" in md2 and "base" in md2
+
+
+def test_ab_confidence_intervals_structure_and_sign():
+    from eval.report import ab_confidence_intervals
+    base = make_synth_manifest("base", seed=20, tar_mu=0.4)
+    cand = make_synth_manifest("cand", seed=20, tar_mu=0.7)   # same seed => aligned conv_files
+    ci = ab_confidence_intervals(base, cand, n_boot=200, seed=1)
+    assert set(ci.keys()) == {"speaker.pooled.min_cllr",
+                              "emotion.pooled.accuracy", "cer.en", "cer.zh"}
+    lo, hi = ci["speaker.pooled.min_cllr"]
+    assert lo <= hi
+    assert hi < 0                     # candidate lowers minCllr => delta CI below 0
+
+
+def test_render_markdown_has_ci_column():
+    from eval.report import (compute_system_report, compare_reports,
+                             render_markdown, ab_confidence_intervals)
+    base_m = make_synth_manifest("base", seed=21, tar_mu=0.4)
+    cand_m = make_synth_manifest("cand", seed=21, tar_mu=0.7)
+    base = compute_system_report(base_m)
+    cand = compute_system_report(cand_m)
+    md = render_markdown(cand, base, compare_reports(base, cand),
+                         ab_confidence_intervals(base_m, cand_m, n_boot=100, seed=1))
+    assert "95% CI (Δ)" in md
+    assert "speaker.pooled.min_cllr" in md

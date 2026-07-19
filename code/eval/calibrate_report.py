@@ -9,7 +9,8 @@ import json
 import sys
 
 from eval.manifest import load_manifest
-from eval.report import compare_reports, compute_system_report, render_markdown
+from eval.report import (ab_confidence_intervals, compare_reports,
+                         compute_system_report, render_markdown)
 
 
 def main(argv=None):
@@ -24,16 +25,19 @@ def main(argv=None):
     ap.add_argument("--out-md", default="report.md")
     args = ap.parse_args(argv)
 
-    cand = compute_system_report(load_manifest(args.candidate))
-    base = delta = None
+    cand_m = load_manifest(args.candidate)
+    cand = compute_system_report(cand_m)
+    base = delta = ci = None
     if args.baseline:
-        base = compute_system_report(load_manifest(args.baseline))
+        base_m = load_manifest(args.baseline)
+        base = compute_system_report(base_m)
         delta = compare_reports(base, cand)
+        ci = ab_confidence_intervals(base_m, cand_m)
 
     with open(args.out_json, "w", encoding="utf-8") as f:
-        json.dump({"candidate": cand, "baseline": base, "delta": delta},
+        json.dump({"candidate": cand, "baseline": base, "delta": delta, "ci": ci},
                   f, indent=2)
-    md = render_markdown(cand, base, delta)
+    md = render_markdown(cand, base, delta, ci)
     with open(args.out_md, "w", encoding="utf-8") as f:
         f.write(md)
     print(md)

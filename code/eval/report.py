@@ -126,7 +126,6 @@ def compute_system_report(manifest):
     spk["transfer_en_to_zh"] = {
         "act_cllr_en_cal": en_cal,
         "act_cllr_zh_cal": zh_cal,
-        "eer_en_cal": en_on_zh["snorm_eer"] if en_on_zh else None,
         "degradation": (en_cal - zh_cal)
         if (en_cal is not None and zh_cal is not None) else None}
     return {"system": manifest["meta"]["system"],
@@ -180,6 +179,63 @@ def _fmt(x):
     return str(x)
 
 
+def _speaker_min_cllr_stat(trials):
+    """Pooled speaker minCllr on a raw speaker-trial list (already eval-filtered)."""
+    s, y, coh = _spk_arrays(trials)
+    z = calibration.snorm_scores(s, coh, TOP_K)
+    return metrics.min_cllr(z[y], z[~y])
+
+
+def _emotion_accuracy_stat(records):
+    """Pooled emotion accuracy on a raw emotion-record list (already eval-filtered)."""
+    P, y = _emo_arrays(records)
+    return float((P.argmax(axis=1) == y).mean())
+
+
+def _cer_stat(records):
+    """Corpus CER on a raw cer-record list (already eval-/language-filtered)."""
+    return metrics.cer_aggregate([(r["ref"], r["hyp"]) for r in records])
+
+
+def _safe_ci(metric_fn, base_items, cand_items, n_boot, seed):
+    try:
+        return bootstrap_delta_ci(metric_fn, base_items, cand_items,
+                                  key_fn=lambda r: r["conv_file"],
+                                  n_boot=n_boot, seed=seed)
+    except ValueError:
+        return None
+
+
+def ab_confidence_intervals(base_manifest, cand_manifest, n_boot=1000, seed=0):
+    """Paired bootstrap 95% CIs for headline A/B metric deltas (cand - base).
+
+    Resamples shared conv_file keys on the eval fold. Returns {metric_key:
+    (lo, hi)}; None where a metric has no shared eval trials."""
+    def ev(items):
+        return [x for x in items if x["split"] == "eval"]
+    out = {
+        "speaker.pooled.min_cllr": _safe_ci(
+            _speaker_min_cllr_stat, ev(base_manifest["speaker_trials"]),
+            ev(cand_manifest["speaker_trials"]), n_boot, seed),
+        "emotion.pooled.accuracy": _safe_ci(
+            _emotion_accuracy_stat, ev(base_manifest["emotion_records"]),
+            ev(cand_manifest["emotion_records"]), n_boot, seed),
+    }
+    for lang in ("en", "zh"):
+        b = [r for r in ev(base_manifest["cer_records"]) if r["language"] == lang]
+        c = [r for r in ev(cand_manifest["cer_records"]) if r["language"] == lang]
+        out[f"cer.{lang}"] = (_safe_ci(_cer_stat, b, c, n_boot, seed)
+                              if (b and c) else None)
+    return out
+
+
+def _fmt_ci(pair):
+    if not pair:
+        return "—"
+    lo, hi = pair
+    return f"[{lo:.4f}, {hi:.4f}]"
+
+
 _SPK_COLS = ["n_trials", "raw_eer", "snorm_eer", "min_cllr", "act_cllr",
              "min_dcf"]
 _EMO_COLS = ["n", "accuracy", "ece_raw", "ece_calibrated", "temperature",
@@ -196,7 +252,7 @@ def _table(title, cols, rows):
     return lines
 
 
-def render_markdown(cand, base=None, delta=None):
+def render_markdown(cand, base=None, delta=None, ci=None):
     L = [f"# ZEST evaluation report — {cand['system']}", ""]
     panels = [(k, cand["speaker"][k]) for k in ("pooled", "en", "zh")]
     L += _table("Speaker preservation (calibrated verification)",
@@ -215,8 +271,8 @@ def render_markdown(cand, base=None, delta=None):
     L.append("")
     if base is not None and delta is not None:
         L += [f"## A/B vs baseline — {base['system']} → {cand['system']}", "",
-              "| metric | baseline | candidate | Δ (cand−base) |",
-              "|---|---|---|---|"]
+              "| metric | baseline | candidate | Δ (cand−base) | 95% CI (Δ) |",
+              "|---|---|---|---|---|"]
         for sec, panel, key in (("speaker", "pooled", "min_cllr"),
                                 ("speaker", "pooled", "act_cllr"),
                                 ("speaker", "pooled", "snorm_eer"),
@@ -225,11 +281,13 @@ def render_markdown(cand, base=None, delta=None):
             b = (base[sec][panel] or {}).get(key)
             c = (cand[sec][panel] or {}).get(key)
             d = ((delta.get(sec) or {}).get(panel) or {}).get(key)
-            L.append(f"| {sec}.{panel}.{key} | {_fmt(b)} | {_fmt(c)} | {_fmt(d)} |")
+            civ = (ci or {}).get(f"{sec}.{panel}.{key}")
+            L.append(f"| {sec}.{panel}.{key} | {_fmt(b)} | {_fmt(c)} | {_fmt(d)} | {_fmt_ci(civ)} |")
         for lang in ("en", "zh"):
             b = base["cer"][lang]["cer"]
             c = cand["cer"][lang]["cer"]
             d = ((delta.get("cer") or {}).get(lang) or {}).get("cer")
-            L.append(f"| cer.{lang} | {_fmt(b)} | {_fmt(c)} | {_fmt(d)} |")
+            civ = (ci or {}).get(f"cer.{lang}")
+            L.append(f"| cer.{lang} | {_fmt(b)} | {_fmt(c)} | {_fmt(d)} | {_fmt_ci(civ)} |")
         L.append("")
     return "\n".join(L)

@@ -48,3 +48,17 @@ def test_cli_survives_cp1252_stdout(tmp_path):
          "--out-md", str(tmp_path / "r.md")],
         capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[2]), env=env)
     assert proc.returncode == 0, proc.stderr
+
+
+def test_ab_run_emits_ci(tmp_path):
+    base = tmp_path / "base.json"
+    cand = tmp_path / "cand.json"
+    save_manifest(make_synth_manifest("w2v2", seed=22, tar_mu=0.4), str(base))
+    save_manifest(make_synth_manifest("wavlm", seed=22, tar_mu=0.7), str(cand))
+    oj, om = tmp_path / "r.json", tmp_path / "r.md"
+    rc = main(["--candidate", str(cand), "--baseline", str(base),
+               "--out-json", str(oj), "--out-md", str(om)])
+    assert rc == 0
+    out = json.loads(oj.read_text(encoding="utf-8"))
+    assert out["ci"]["speaker.pooled.min_cllr"] is not None
+    assert "95% CI (Δ)" in om.read_text(encoding="utf-8")
