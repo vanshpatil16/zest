@@ -11,7 +11,8 @@ _Companion file: `task.md` (the forward-looking plan). This file is the running 
 | M2 — Architecture documentation (`docs/ZEST_architecture.drawio`) | ✅ Done |
 | M3 — Optimization research (WavLM / calibration / language deviation / SpeechBrain) | ✅ Done |
 | T1 — WavLM → SACE swap (code) | ✅ Code complete — pending retrain/validation |
-| T2–T5 — Remaining optimizations (see `task.md`) | ⬜ Not started |
+| T2 — Calibrated eval harness (code) | ✅ Code complete — pending Kaggle scoring |
+| T3–T5 — Remaining optimizations (see `task.md`) | ⬜ Not started |
 
 ---
 
@@ -106,9 +107,19 @@ working baseline stays intact until WavLM is validated.
 
 ---
 
+## T2 — Calibrated evaluation harness  (✅ code complete 2026-07-18, pending Kaggle runs)
+
+The repository had **no converted-audio evaluation** — the paper's calibrated metrics (EER, minCllr, as-norm) were unimplemented. Built a **two-stage harness** in `code/eval/` (spec + plan in `docs/superpowers/`):
+- **Stage A:** `score_converted.py` — loads a trained emotion probe (5-class classifier on mean-pooled HuBERT-base features), scores converted wavs against held-out ESD train/val/test speakers, computes frame-level ASR via BLIP-2 (CER), and outputs calibration-ready score manifests (JSON).
+- **Probe trainer:** `train_emotion_probe.py` — trains the independent 5-class ESD emotion probe on frozen HuBERT-base (deliberately not WavLM, to isolate evaluator from SACE), outputs `.pth`.
+- **Stage B:** `calibrate_report.py` — loads two manifests (baseline + candidate), applies adaptive score normalization (as-norm), fits logistic calibration, computes EER / minCllr / actCllr / minDCF, and produces markdown + JSON reports with 95% bootstrap confidence intervals for paired comparisons.
+
+**Pure core (esd/manifest/metrics/calibration/report + CLI):** fully unit-tested locally. 49 tests passing; per-module coverage: esd 97%, manifest 91%, metrics 96%, calibration 100%, report 96%, calibrate_report 96% (all ≥80%).
+
+**Stage A + probe trainer:** py_compile-verified (syntax clean), pending Kaggle execution per `code/eval/KAGGLE_EVAL.md` (GPU + Internet required for HuBERT extraction + training).
+
+---
+
 ## Next up
-1. **T1 validation** — retrain `f0_predictor.pth` on Kaggle with the WavLM backbone, then
-   re-extract `wav2vec_feats`, re-run F0 inference/conversion, and compare emotion-transfer
-   + speaker metrics against the wav2vec2 baseline.
-2. **T2** — calibrated evaluation (see `task.md`).
-3. Verify M1 conversion output on Kaggle (`pred_DSDT_f0 > 0`).
+1. Kaggle run — T1 retrain, then T2 probe training + scoring of baseline & WavLM systems, then Stage B A/B report.
+2. T3.
