@@ -1,4 +1,3 @@
-import copy
 import pytest
 from eval.manifest import (ManifestError, new_manifest, validate_manifest,
                            save_manifest, load_manifest)
@@ -95,3 +94,10 @@ def test_load_rejects_malformed(tmp_path):
     p.write_text('{"meta": {"system": "x"}}', encoding="utf-8")
     with pytest.raises(ManifestError):
         load_manifest(str(p))
+
+
+def test_posterior_values_must_be_numeric():
+    m = _valid()
+    m["emotion_records"][0]["posterior"]["angry"] = None
+    with pytest.raises(ManifestError, match="posterior"):
+        validate_manifest(m)
