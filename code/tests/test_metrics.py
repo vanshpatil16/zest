@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from eval.metrics import cllr, pav_llrs, min_cllr, eer, min_dcf
+from eval.metrics import cllr, pav_llrs, min_cllr, eer, min_dcf, ece, edit_distance, cer, cer_aggregate, bootstrap_ci
 
 
 RNG = np.random.default_rng(42)
@@ -50,3 +50,45 @@ def test_min_dcf_bounds_and_operating_point():
     v = min_dcf(TAR, NON, p_target=0.05)
     assert 0.0 < v <= 1.0
     assert min_dcf(np.array([1.0, 2.0]), np.array([-2.0, -1.0])) == 0.0
+
+
+def test_ece_zero_when_perfectly_calibrated_and_correct():
+    p = np.array([[1.0, 0.0], [0.0, 1.0], [1.0, 0.0]])
+    y = np.array([0, 1, 0])
+    assert ece(p, y) < 1e-9
+
+
+def test_ece_high_when_confidently_wrong():
+    p = np.array([[0.99, 0.01], [0.99, 0.01]])
+    y = np.array([1, 1])
+    assert ece(p, y) > 0.9
+
+
+def test_edit_distance_known_cases():
+    assert edit_distance("kitten", "sitting") == 3
+    assert edit_distance("abc", "abc") == 0
+    assert edit_distance("abc", "") == 3
+
+
+def test_cer_and_aggregate():
+    assert cer("abcd", "abxd") == 0.25
+    with pytest.raises(ValueError):
+        cer("", "x")
+    # aggregate = total edits / total ref chars, NOT mean of per-utt CER
+    agg = cer_aggregate([("abcd", "abxd"), ("ab", "ab")])
+    assert abs(agg - 1 / 6) < 1e-12
+
+
+def test_cer_handles_chinese_chars():
+    assert cer("你好世界", "你好地界") == 0.25
+
+
+def test_bootstrap_ci_reproducible_and_covers_mean():
+    items = list(RNG.normal(5.0, 1.0, 200))
+    stat = lambda xs: float(np.mean(xs))
+    lo1, hi1 = bootstrap_ci(stat, items, n_boot=200, seed=7)
+    lo2, hi2 = bootstrap_ci(stat, items, n_boot=200, seed=7)
+    assert (lo1, hi1) == (lo2, hi2)
+    assert lo1 < 5.0 < hi1
+    with pytest.raises(ValueError):
+        bootstrap_ci(stat, [], n_boot=10)

@@ -57,3 +57,61 @@ def min_dcf(tar_scores, non_scores, p_target=0.05, c_miss=1.0, c_fa=1.0):
     p_miss, p_fa = _rates(tar_scores, non_scores)
     dcf = c_miss * p_target * p_miss + c_fa * (1.0 - p_target) * p_fa
     return float(dcf.min() / min(c_miss * p_target, c_fa * (1.0 - p_target)))
+
+
+def ece(posteriors, labels, n_bins=10):
+    """Expected calibration error (top-label, equal-width bins)."""
+    p = np.asarray(posteriors, float)
+    y = np.asarray(labels, int)
+    conf = p.max(axis=1)
+    correct = (p.argmax(axis=1) == y).astype(float)
+    edges = np.linspace(0.0, 1.0, n_bins + 1)
+    total = 0.0
+    for i in range(n_bins):
+        lo, hi = edges[i], edges[i + 1]
+        m = (conf > lo) & (conf <= hi) if i > 0 else (conf >= lo) & (conf <= hi)
+        if m.any():
+            total += m.mean() * abs(correct[m].mean() - conf[m].mean())
+    return float(total)
+
+
+def edit_distance(ref, hyp):
+    """Character-level Levenshtein distance."""
+    prev = list(range(len(hyp) + 1))
+    for i, rc in enumerate(ref, 1):
+        cur = [i] + [0] * len(hyp)
+        for j, hc in enumerate(hyp, 1):
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (rc != hc))
+        prev = cur
+    return prev[-1]
+
+
+def cer(ref, hyp):
+    if not ref:
+        raise ValueError("empty reference transcript")
+    return edit_distance(ref, hyp) / len(ref)
+
+
+def cer_aggregate(pairs):
+    """Corpus CER: total edit distance / total reference characters."""
+    tot_edits, tot_chars = 0, 0
+    for ref, hyp in pairs:
+        if not ref:
+            raise ValueError("empty reference transcript in pair")
+        tot_edits += edit_distance(ref, hyp)
+        tot_chars += len(ref)
+    if tot_chars == 0:
+        raise ValueError("cer_aggregate got no pairs")
+    return tot_edits / tot_chars
+
+
+def bootstrap_ci(stat_fn, items, n_boot=1000, alpha=0.05, seed=0):
+    """Percentile bootstrap CI for stat_fn over a list of items."""
+    n = len(items)
+    if n == 0:
+        raise ValueError("bootstrap_ci needs at least one item")
+    rng = np.random.default_rng(seed)
+    vals = [stat_fn([items[k] for k in rng.integers(0, n, n)])
+            for _ in range(n_boot)]
+    return (float(np.percentile(vals, 100 * alpha / 2)),
+            float(np.percentile(vals, 100 * (1 - alpha / 2))))
