@@ -13,6 +13,8 @@ from eval.report import compare_reports, compute_system_report, render_markdown
 
 
 def main(argv=None):
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--candidate", required=True,
                     help="scores manifest of the system under test")

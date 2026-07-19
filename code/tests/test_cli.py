@@ -29,3 +29,21 @@ def test_ab_run_produces_delta(tmp_path):
     out = json.loads(oj.read_text(encoding="utf-8"))
     assert out["delta"]["speaker"]["pooled"]["min_cllr"] < 0
     assert "A/B" in om.read_text(encoding="utf-8")
+
+
+def test_cli_survives_cp1252_stdout(tmp_path):
+    import os
+    import subprocess
+    import sys as _sys
+    cand = tmp_path / "cand.json"
+    save_manifest(make_synth_manifest("wavlm", seed=8), str(cand))
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "cp1252"
+    env["PYTHONPATH"] = "code"
+    proc = subprocess.run(
+        [_sys.executable, "-m", "eval.calibrate_report",
+         "--candidate", str(cand),
+         "--out-json", str(tmp_path / "r.json"),
+         "--out-md", str(tmp_path / "r.md")],
+        capture_output=True, text=True, cwd=r"C:\ZEST", env=env)
+    assert proc.returncode == 0, proc.stderr
