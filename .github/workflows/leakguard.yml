@@ -16,7 +16,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run LeakGuard Analysis
-        uses: vanshpatil16/VH26-DOMINATORS-5.0@ci-cd
+        uses: vanshpatil16/VH26-DOMINATORS-5.0@v1.0.2
         with:
-          license-key: ${{ secrets.LEAKGUARD_LICENSE_KEY }}
           ensemble: 'true'
